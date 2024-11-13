@@ -1,0 +1,19 @@
+name: test
+on:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/system4-tech/task-runner:ubuntu
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - run: make deps
+
+      - name: Check scripts
+        run: make shellcheck
+
+      - name: Run tests
+        run: make test
