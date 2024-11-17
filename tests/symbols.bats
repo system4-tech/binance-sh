@@ -4,8 +4,7 @@ setup() {
   bats_load_library bats-support
   bats_load_library bats-assert
   load "../lib/utils.sh"
-  load "../src/api_urls.sh"
-  load "../src/symbols.sh"
+  load "../src/main.sh"
 }
 
 # Test: symbols should return a list of symbols for a valid product
