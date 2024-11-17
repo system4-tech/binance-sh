@@ -4,8 +4,7 @@ setup() {
   bats_load_library bats-support
   bats_load_library bats-assert
   load "../lib/utils.sh"
-  load "../src/api_urls.sh"
-  load "../src/klines.sh"
+  load "../src/main.sh"
 }
 
 # Test: klines should return kline data for valid inputs
@@ -38,4 +37,16 @@ setup() {
 @test "klines returns klines if start_time and end_time are omitted" {
   run klines spot BTCUSDT 1d
   assert_success
+}
+
+# Test: klines should fail if start_time is invalid
+@test "klines fails when start_time is invalid" {
+  run klines spot BTCUSDT 1d "invalid-date" "2021-01-02"
+  assert_failure
+}
+
+# Test: klines should fail if end_time is invalid
+@test "klines fails when end_time is invalid" {
+  run klines spot BTCUSDT 1d "2021-01-01" "invalid-date"
+  assert_failure
 }
