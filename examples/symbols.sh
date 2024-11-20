@@ -9,7 +9,7 @@ SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 main() {
   local product
 
-  for product in "${API_URLS[@]}"; do
+  for product in "${!API_URLS[@]}"; do
     symbols "$product"
   done
 }
