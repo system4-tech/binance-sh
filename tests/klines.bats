@@ -4,7 +4,8 @@ setup() {
   bats_load_library bats-support
   bats_load_library bats-assert
   load "../lib/utils.sh"
-  load "../src/main.sh"
+  load "../src/config.sh"
+  load "../src/klines.sh"
 }
 
 # Test: klines should return kline data for valid inputs

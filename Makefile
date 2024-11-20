@@ -9,3 +9,4 @@ test:
 	@bats tests/*.bats
 shellcheck:
 	@shellcheck src/*.sh
+	@shellcheck examples/*.sh
