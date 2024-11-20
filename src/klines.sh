@@ -29,12 +29,20 @@ klines() {
   base_url=${API_URLS[$product]:?API URL is not set}
   query_string="symbol=${symbol}&interval=${interval}&limit=1000"
 
-  if is_set "$start_time" && is_date "$start_time"; then 
+  if is_set "$start_time"; then
+    if ! is_date "$start_time"; then
+      fail "<start_time> must be valid date"
+    fi
+
     start_time_ms=$(date_to_ms "$start_time")
     query_string+="&startTime=${start_time_ms}"
   fi
 
-  if is_set "$end_time" && is_date "$end_time"; then
+  if is_set "$end_time"; then
+    if ! is_date "$end_time"; then
+      fail "<end_time> must be valid date"
+    fi
+    
     end_time_ms=$(date_to_ms "$end_time")
     query_string+="&endTime=${end_time_ms}"
   fi

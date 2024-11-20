@@ -19,5 +19,5 @@ symbols() {
   base_url=${API_URLS[$product]:?API URL is not set}
 
   # todo: check response before passing to jq
-  http.get "${base_url}/exchangeInfo" | jq -r .symbols[].symbol
+  http.get "${base_url}/exchangeInfo" | jq -r '.symbols[].symbol'
 }

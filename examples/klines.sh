@@ -2,17 +2,18 @@
 
 set -eu
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 . "$SCRIPT_DIR/../lib/binance.sh"
 
 main() {
-  local symbols
+  local symbols start_time symbol
 
   symbols=$(symbols spot)
+  start_time=$(today)
 
   for symbol in $symbols; do
-    klines spot $symbol 1d 2021-01-01 2021-01-02
+    TZ=UTC klines spot "$symbol" 1d "$start_time"
   done
 }
 

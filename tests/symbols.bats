@@ -4,7 +4,7 @@ setup() {
   bats_load_library bats-support
   bats_load_library bats-assert
   load "../lib/utils.sh"
-  load "../src/api_urls.sh"
+  load "../src/config.sh"
   load "../src/symbols.sh"
 }
 
