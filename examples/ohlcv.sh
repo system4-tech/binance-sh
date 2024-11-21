@@ -13,7 +13,7 @@ main() {
   start_time=$(today)
 
   for symbol in $symbols; do
-    # shellcheck disable=SC2034
+    # shellcheck disable=SC2034,SC2119
     klines spot "$symbol" 1d "$start_time" | json_to_tsv | \
       while IFS=$'\t' read -r open_time open high low close volume close_time quote_asset_volume; do
 

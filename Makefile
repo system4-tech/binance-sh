@@ -4,9 +4,9 @@ deps:
 build:
 	@awk -f inline.awk src/main.sh > lib/binance.sh
 clean:
-	@rm lib/*.sh
+	@rm -f lib/*.sh
 test:
 	@bats tests/*.bats
 shellcheck:
-	@shellcheck src/*.sh
-	@shellcheck examples/*.sh
+	@shellcheck src/*.sh examples/*.sh
+
