@@ -396,6 +396,7 @@ fail() {
 }
 
 
+# shellcheck disable=SC2034
 declare -Ag API_URLS
 
 API_URLS=(

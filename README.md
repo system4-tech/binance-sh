@@ -7,7 +7,7 @@ This repository contains shell programs for downloading Binance public market da
 ### Import
 
 ```sh
-wget https://github.com/system4-tech/binance-sh/blob/main/lib/binance.sh
+wget https://raw.githubusercontent.com/system4-tech/binance-sh/refs/heads/main/lib/binance.sh
 . binance.sh
 ```
 
