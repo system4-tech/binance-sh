@@ -16,37 +16,35 @@
 #   0 on success, non-zero on error.
 #######################################
 klines() {
-  local product symbol interval start_time end_time
-  local base_url query_string
-  local start_time_ms end_time_ms
+  local product=${1:?missing required <product> argument}
+  local symbol=${2:?missing required <symbol> argument}
+  local interval=${3:?missing required <interval> argument}
+  local start_time=${4:?missing required <start_time> argument}
+  local end_time=${5:?missing required <end_time> argument}
+  local base_url=${API_URLS[$product]:?API URL is not set}
+  local query="symbol=${symbol}&interval=${interval}&limit=1000"
+  local start_time_ms end_time_ms url response klines="[]"
 
-  product=${1:?missing required <product> argument}
-  symbol=${2:?missing required <symbol> argument}
-  interval=${3:?missing required <interval> argument}
-  start_time=${4:-}
-  end_time=${5:-}
-
-  base_url=${API_URLS[$product]:?API URL is not set}
-  query_string="symbol=${symbol}&interval=${interval}&limit=1000"
-
-  if is_set "$start_time"; then
-    if ! is_date "$start_time"; then
-      fail "<start_time> must be valid date"
-    fi
-
-    start_time_ms=$(date_to_ms "$start_time")
-    query_string+="&startTime=${start_time_ms}"
+  if ! is_date "$start_time" || ! is_date "$end_time"; then
+    fail "<start_time> and <end_time> must be valid date"
   fi
 
-  if is_set "$end_time"; then
-    if ! is_date "$end_time"; then
-      fail "<end_time> must be valid date"
-    fi
-    
-    end_time_ms=$(date_to_ms "$end_time")
-    query_string+="&endTime=${end_time_ms}"
-  fi
+  start_time_ms=$(date_to_ms "$start_time")
+  end_time_ms=$(date_to_ms "$end_time")
 
-  # todo: check response before passing to jq
-  http.get "${base_url}/klines?${query_string}" | jq -r .
+  query+="&startTime=${start_time_ms}&endTime=${end_time_ms}"
+  url="${base_url}/klines?${query}"
+
+  while ((start_time_ms < end_time_ms)); do
+    if ! response=$(http.get "$url") || ! is_array "$response"; then
+      fail "Failed to get valid data from API: $response"
+    fi
+
+    klines=$(echo "$klines" "$response" | jq -s 'add')
+    # todo: add max_iterations and check start_time to avoid infinite loop
+    start_time_ms=$(echo "$response" | jq -r '.[-1][6]') # get last close time
+    url=$(urlparam "$url" startTime "$start_time_ms")
+  done
+
+  echo "$klines" | jq -rc .
 }
