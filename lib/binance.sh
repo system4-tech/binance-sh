@@ -149,6 +149,86 @@ download() {
 }
 
 #######################################
+# Decodes a URL-encoded string.
+# Globals:
+#   None
+# Arguments:
+#   url (string): URL-encoded string to decode
+# Outputs:
+#   Writes the decoded string to stdout
+# Returns:
+#   0 on success
+#######################################
+urldecode() {
+  local url=${1:-}
+  local decoded="${url//+/ }"  # Replace + with a space
+  printf '%b' "${decoded//%/\\x}"  # Decode percent-encoded characters
+}
+
+#######################################
+# Encodes a string to be used in a URL.
+# Globals:
+#   None
+# Arguments:
+#   url (string): String to encode
+# Outputs:
+#   Writes the URL-encoded string to stdout
+# Returns:
+#   0 on success
+#######################################
+urlencode() {
+  local url=${1:-}
+  local encoded=""
+  local char 
+  
+  for ((i = 0; i < ${#url}; i++)); do
+    char="${url:i:1}"
+    # Alphanumeric and some special characters don't need encoding
+    if [[ "$char" =~ [A-Za-z0-9._~-] ]]; then
+      encoded+="$char"
+    else
+      # Percent-encode any other character
+      printf -v encoded '%s%%%02X' "$encoded" "'$char"
+    fi
+  done
+  echo "$encoded"
+}
+
+#######################################
+# Adds or updates a query parameter in a URL.
+# If the key already exists, it updates the value, otherwise it adds the parameter.
+# Globals:
+#   None
+# Arguments:
+#   url (string): Base URL to modify
+#   key (string): The query parameter key to add/update
+#   value (string): The value to associate with the query parameter key
+# Outputs:
+#   Writes the modified URL with the added/updated query parameter to stdout
+# Returns:
+#   0 on success
+#######################################
+urlparam() {
+  local url=${1:?missing required <url> argument}
+  local key=${2:?missing required <key> argument}
+  local value=${3:-}
+
+  # URL encode the key and value
+  key=$(urlencode "$key")
+  value=$(urlencode "$value")
+
+  if [[ "$url" =~ ([?&])$key= ]]; then
+    url=$(echo "$url" | sed -E "s/([?&]$key=)[^&]*/\1$value/")
+  elif [[ "$url" == *"?"* ]]; then
+    url="$url&$key=$value"
+  else
+    url="$url?$key=$value"
+  fi
+
+  echo "$url"
+}
+
+#######################################
 # Checks if the provided argument is a regular file.
 # Globals:
 #   None
@@ -324,6 +404,7 @@ json_to_tsv() {
     return 1
   fi
 
+  # todo: support streaming
   echo "$json" | jq -r '
     .[] |
     if type == "array" then
@@ -334,6 +415,48 @@ json_to_tsv() {
       [.] # Wrap single values into an array
     end | @tsv
   '
+}
+
+#######################################
+# Checks if a string is valid JSON.
+# Globals:
+#   None
+# Arguments:
+#   json (string): Input string to validate
+# Outputs:
+#   None
+# Returns:
+#   0 if the input is valid JSON, 1 otherwise
+#######################################
+is_json() {
+  local json="${1:-}"
+
+  if echo "${json}" | jq -e . >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+#######################################
+# Checks if a string is a valid JSON array.
+# Globals:
+#   None
+# Arguments:
+#   json (string): Input string to validate as a JSON array
+# Outputs:
+#   None
+# Returns:
+#   0 if the input is a valid JSON array, 1 otherwise
+#######################################
+is_array() {
+  local json="${1:-}"
+
+  if echo "${json}" | jq -e 'if type == "array" then true else false end' >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 #######################################
@@ -443,37 +566,34 @@ symbols() {
 #   0 on success, non-zero on error.
 #######################################
 klines() {
-  local product symbol interval start_time end_time
-  local base_url query_string
-  local start_time_ms end_time_ms
+  local product=${1:?missing required <product> argument}
+  local symbol=${2:?missing required <symbol> argument}
+  local interval=${3:?missing required <interval> argument}
+  local start_time=${4:?missing required <start_time> argument}
+  local end_time=${5:?missing required <end_time> argument}
+  local base_url=${API_URLS[$product]:?API URL is not set}
+  local query="symbol=${symbol}&interval=${interval}&limit=1000"
+  local start_time_ms end_time_ms url response klines="[]"
 
-  product=${1:?missing required <product> argument}
-  symbol=${2:?missing required <symbol> argument}
-  interval=${3:?missing required <interval> argument}
-  start_time=${4:-}
-  end_time=${5:-}
-
-  base_url=${API_URLS[$product]:?API URL is not set}
-  query_string="symbol=${symbol}&interval=${interval}&limit=1000"
-
-  if is_set "$start_time"; then
-    if ! is_date "$start_time"; then
-      fail "<start_time> must be valid date"
-    fi
-
-    start_time_ms=$(date_to_ms "$start_time")
-    query_string+="&startTime=${start_time_ms}"
+  if ! is_date "$start_time" || ! is_date "$end_time"; then
+    fail "<start_time> and <end_time> must be valid date"
   fi
 
-  if is_set "$end_time"; then
-    if ! is_date "$end_time"; then
-      fail "<end_time> must be valid date"
-    fi
-    
-    end_time_ms=$(date_to_ms "$end_time")
-    query_string+="&endTime=${end_time_ms}"
-  fi
+  start_time_ms=$(date_to_ms "$start_time")
+  end_time_ms=$(date_to_ms "$end_time")
 
-  # todo: check response before passing to jq
-  http.get "${base_url}/klines?${query_string}" | jq -r .
+  query+="&startTime=${start_time_ms}&endTime=${end_time_ms}"
+  url="${base_url}/klines?${query}"
+
+  while ((start_time_ms < end_time_ms)); do
+    if ! response=$(http.get "$url") || ! is_array "$response"; then
+      fail "Failed to get valid data from API: $response"
+    fi
+
+    klines=$(echo "$klines" "$response" | jq -s 'add')
+    start_time_ms=$(echo "$response" | jq -r '.[-1][6]') # get last close time
+    url=$(urlparam "$url" startTime "$start_time_ms")
+  done
+
+  echo "$klines" | jq -rc .
 }
