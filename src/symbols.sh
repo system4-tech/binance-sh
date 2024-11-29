@@ -12,12 +12,15 @@
 #   0 on success, non-zero on error.
 #######################################
 symbols() {
-  local product base_url
+  local product base_url response
   
   product=${1:?missing required <product> argument}
   
   base_url=${API_URLS[$product]:?API URL is not set}
 
-  # todo: check response before passing to jq
-  http.get "${base_url}/exchangeInfo" | jq -r '.symbols[].symbol'
+  response=$(http.get "${base_url}/exchangeInfo") || {
+    fail "Error: $response"?
+  }
+
+  echo "$response" | jq -r '.symbols[].symbol'
 }
