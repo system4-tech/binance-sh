@@ -540,14 +540,17 @@ API_URLS=(
 #   0 on success, non-zero on error.
 #######################################
 symbols() {
-  local product base_url
+  local product base_url response
   
   product=${1:?missing required <product> argument}
   
   base_url=${API_URLS[$product]:?API URL is not set}
 
-  # todo: check response before passing to jq
-  http.get "${base_url}/exchangeInfo" | jq -r '.symbols[].symbol'
+  response=$(http.get "${base_url}/exchangeInfo") || {
+    fail "Error: $response"?
+  }
+
+  echo "$response" | jq -r '.symbols[].symbol'
 }
 
 #######################################
@@ -571,14 +574,16 @@ klines() {
   local interval=${3:?missing required <interval> argument}
   local start_time=${4:?missing required <start_time> argument}
   local end_time=${5:?missing required <end_time> argument}
+  
   local base_url=${API_URLS[$product]:?API URL is not set}
   local query="symbol=${symbol}&interval=${interval}&limit=1000"
+
   local start_time_ms end_time_ms url response klines="[]"
 
   if ! is_date "$start_time" || ! is_date "$end_time"; then
     fail "<start_time> and <end_time> must be valid date"
   fi
-
+  
   start_time_ms=$(date_to_ms "$start_time")
   end_time_ms=$(date_to_ms "$end_time")
 
@@ -591,6 +596,7 @@ klines() {
     fi
 
     klines=$(echo "$klines" "$response" | jq -s 'add')
+    # todo: add max_iterations and check start_time to avoid infinite loop
     start_time_ms=$(echo "$response" | jq -r '.[-1][6]') # get last close time
     url=$(urlparam "$url" startTime "$start_time_ms")
   done
