@@ -355,6 +355,21 @@ tomorrow() {
 }
 
 #######################################
+# Gets the current date and time in YYYY-MM-DD HH:MM:SS.sss format.
+# Globals:
+#   None
+# Arguments:
+#   None
+# Outputs:
+#   Writes the current date and time to stdout, including milliseconds if supported.
+# Returns:
+#   0 on success
+#######################################
+now() {
+  date '+%Y-%m-%d %H:%M:%S.%3N'
+}
+
+#######################################
 # Converts a JSON array into newline-delimited JSON (NDJSON).
 # Globals:
 #   None
@@ -460,6 +475,43 @@ is_array() {
 }
 
 #######################################
+# Converts a JSON array into CSV format with only values.
+# Supports arrays, array of arrays, and array of objects.
+# Globals:
+#   None
+# Arguments:
+#   json (string): JSON array as a string
+# Outputs:
+#   Writes CSV-formatted values to stdout
+# Returns:
+#   0 on success, 1 on error
+#######################################
+json_to_csv() {
+  local json=${1:-}
+
+  if [ -z "$json" ] && [ -p /dev/stdin ]; then
+    json=$(< /dev/stdin)
+  fi
+
+  if [ -z "$json" ]; then
+    echo "Error: Empty JSON string" >&2
+    return 1
+  fi
+
+  # todo: support streaming
+  echo "$json" | jq -r '
+    .[] |
+    if type == "array" then
+      .
+    elif type == "object" then
+      [.[]]
+    else
+      [.] # Wrap single values into an array
+    end | @csv
+  '
+}
+
+#######################################
 # Checks if the provided argument is set (non-empty).
 # Globals:
 #   None
@@ -518,6 +570,27 @@ fail() {
   exit 1
 }
 
+#######################################
+# Checks if the last command failed (non-zero exit code).
+# Globals:
+#   None
+# Arguments:
+#   None
+# Outputs:
+#   Writes nothing to stdout.
+# Returns:
+#   0 (true) if the last command failed, 1 (false) otherwise.
+#######################################
+has_failed() {
+  local last_exit_code=$?
+  
+  if [[ $last_exit_code -ne 0 ]]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
 
 # shellcheck disable=SC2034
 declare -Ag API_URLS
@@ -574,16 +647,14 @@ klines() {
   local interval=${3:?missing required <interval> argument}
   local start_time=${4:?missing required <start_time> argument}
   local end_time=${5:?missing required <end_time> argument}
-  
   local base_url=${API_URLS[$product]:?API URL is not set}
   local query="symbol=${symbol}&interval=${interval}&limit=1000"
-
   local start_time_ms end_time_ms url response klines="[]"
 
   if ! is_date "$start_time" || ! is_date "$end_time"; then
     fail "<start_time> and <end_time> must be valid date"
   fi
-  
+
   start_time_ms=$(date_to_ms "$start_time")
   end_time_ms=$(date_to_ms "$end_time")
 
