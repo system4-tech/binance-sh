@@ -673,6 +673,11 @@ klines() {
       fail "Failed to get valid data from API: $response"
     fi
 
+    length=$(json_length "$response")
+    if (( length == 0 )); then
+      break
+    fi
+
     klines=$(echo "$klines" "$response" | jq -s 'add')
     # todo: add max_iterations and check start_time to avoid infinite loop
     start_time_ms=$(echo "$response" | jq -r '.[-1][6]') # get last close time
