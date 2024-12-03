@@ -383,16 +383,16 @@ now() {
 json_to_ndjson() {
   local json=${1:-}
 
-  if [ -z "$json" ] && [ -p /dev/stdin ]; then
-    json=$(< /dev/stdin)    
-  fi
-
   if [ -z "$json" ]; then
-    echo "Error: Empty JSON string"
-    return 1
+    if [ -p /dev/stdin ]; then
+      json=$(< /dev/stdin)
+    else
+      echo "Error: Empty JSON string"
+      return 1
+    fi
   fi
 
-  echo "$json" | jq -rc '.[]'
+  jq -rc '.[]' <<< "$json"
 }
 
 #######################################
@@ -410,26 +410,19 @@ json_to_ndjson() {
 json_to_tsv() {
   local json=${1:-}
 
-  if [ -z "$json" ] && [ -p /dev/stdin ]; then
-    json=$(< /dev/stdin)
-  fi
-
   if [ -z "$json" ]; then
-    echo "Error: Empty JSON string" >&2
-    return 1
+    if [ -p /dev/stdin ]; then
+      json=$(< /dev/stdin)
+    else
+      echo "Error: Empty JSON string"
+      return 1
+    fi
   fi
 
-  # todo: support streaming
-  echo "$json" | jq -r '
-    .[] |
-    if type == "array" then
-      .
-    elif type == "object" then
-      [.[]]
-    else
-      [.] # Wrap single values into an array
-    end | @tsv
-  '
+  jq -r '.[] | 
+    if type == "array" then . 
+    elif type == "object" then [.[]]
+    else [.] end | @tsv' <<< "$json"
 }
 
 #######################################
@@ -445,12 +438,7 @@ json_to_tsv() {
 #######################################
 is_json() {
   local json="${1:-}"
-
-  if echo "${json}" | jq -e . >/dev/null 2>&1; then
-    return 0
-  else
-    return 1
-  fi
+  jq -e . >/dev/null 2>&1 <<< "$json"
 }
 
 #######################################
@@ -466,12 +454,7 @@ is_json() {
 #######################################
 is_array() {
   local json="${1:-}"
-
-  if echo "${json}" | jq -e 'if type == "array" then true else false end' >/dev/null 2>&1; then
-    return 0
-  else
-    return 1
-  fi
+  jq -e 'type == "array"' >/dev/null 2>&1 <<< "$json"
 }
 
 #######################################
@@ -489,26 +472,19 @@ is_array() {
 json_to_csv() {
   local json=${1:-}
 
-  if [ -z "$json" ] && [ -p /dev/stdin ]; then
-    json=$(< /dev/stdin)
-  fi
-
   if [ -z "$json" ]; then
-    echo "Error: Empty JSON string" >&2
-    return 1
+    if [ -p /dev/stdin ]; then
+      json=$(< /dev/stdin)
+    else
+      echo "Error: Empty JSON string"
+      return 1
+    fi
   fi
 
-  # todo: support streaming
-  echo "$json" | jq -r '
-    .[] |
-    if type == "array" then
-      .
-    elif type == "object" then
-      [.[]]
-    else
-      [.] # Wrap single values into an array
-    end | @csv
-  '
+  jq -r '.[] | 
+    if type == "array" then . 
+    elif type == "object" then [.[]]
+    else [.] end | @csv' <<< "$json"
 }
 
 #######################################
@@ -525,18 +501,17 @@ json_to_csv() {
 #######################################
 json_length() {
   local json=${1:-}
-  local path=${2:-.}
-
-  if [ -z "$json" ] && [ -p /dev/stdin ]; then
-    json=$(< /dev/stdin)
-  fi
 
   if [ -z "$json" ]; then
-    echo "Error: Empty JSON string" >&2
-    return 1
+    if [ -p /dev/stdin ]; then
+      json=$(< /dev/stdin)
+    else
+      echo "Error: Empty JSON string"
+      return 1
+    fi
   fi
 
-  echo "${json}" | jq -r "${path} | length" 
+  jq -r 'length' <<< "$json"
 }
 
 #######################################
