@@ -640,11 +640,12 @@ klines() {
   start_time_ms=$(date_to_ms "$start_time")
   end_time_ms=$(date_to_ms "$end_time")
 
-  query+="&startTime=${start_time_ms}&endTime=${end_time_ms}"
-  url="${base_url}/klines?${query}"
+  query+="&endTime=${end_time_ms}"
 
   while ((start_time_ms < end_time_ms)); do
-    if ! response=$(http.get "$url") || ! is_array "$response"; then
+    url="${base_url}/klines?${query}&startTime=${start_time_ms}"
+    response=$(http.get "$url")
+    if ! is_array "$response"; then
       fail "Failed to get valid data from API: $response"
     fi
 
@@ -653,11 +654,13 @@ klines() {
       break
     fi
 
-    klines=$(echo "$klines" "$response" | jq -s 'add')
-    # todo: add max_iterations and check start_time to avoid infinite loop
-    start_time_ms=$(echo "$response" | jq -r '.[-1][6]') # get last close time
-    url=$(urlparam "$url" startTime "$start_time_ms")
+    klines=$(jq -s 'add' <<< "$klines $response")
+
+    # get last close time
+    if ! start_time_ms=$(jq -r '.[-1][6]' <<< "$response"); then
+      break
+    fi
   done
 
-  echo "$klines" | jq -rc .
+  jq -rc . <<< "$klines"
 }
