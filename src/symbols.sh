@@ -22,5 +22,5 @@ symbols() {
     fail "Error: $response"?
   }
 
-  echo "$response" | jq -r '.symbols[].symbol'
+  jq -r '.symbols[].symbol' <<< "$response"
 }

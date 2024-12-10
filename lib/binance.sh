@@ -370,6 +370,26 @@ now() {
 }
 
 #######################################
+# Formats a given date string into a specified format.
+# Globals:
+#   None
+# Arguments:
+#   date (string): Date string
+#   format (string): Desired date format
+# Outputs:
+#   Writes the formatted date to stdout
+# Returns:
+#   0 on success, 1 if the date is invalid
+#######################################
+format_date() {
+  local date=${1:?missing required <date> argument}
+  local format=${2:?missing required <format> argument}
+
+  date -d "$date" +"$format"
+}
+
+
+#######################################
 # Converts a JSON array into newline-delimited JSON (NDJSON).
 # Globals:
 #   None
@@ -605,7 +625,7 @@ symbols() {
     fail "Error: $response"?
   }
 
-  echo "$response" | jq -r '.symbols[].symbol'
+  jq -r '.symbols[].symbol' <<< "$response"
 }
 
 #######################################
