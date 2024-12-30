@@ -271,29 +271,6 @@ dir_exists() {
 }
 
 #######################################
-# Splits a file into smaller files with a specified number of lines.
-# Globals:
-#   None
-# Arguments:
-#   file (string): Path to the file to be split
-#   prefix (string): Prefix for the output files
-#   batch_size (int): Number of lines per split file
-# Outputs:
-#   Lists the generated split files
-# Returns:
-#   None
-#######################################
-file_split() {
-  local file=${1:?Missing required <file> argument}
-  local prefix=${2:?Missing required <prefix> argument}
-  local batch_size=${3:?Missing required <batch_size> argument}
-
-  split -l "$batch_size" --numeric-suffixes=1 "$file" "$prefix"
-
-  ls "${prefix}"*
-}
-
-#######################################
 # Checks if the provided argument is a valid date.
 # Globals:
 #   None
@@ -644,8 +621,8 @@ symbols() {
   
   base_url=${API_URLS[$product]:?API URL is not set}
 
-  response=$(http.get "${base_url}/exchangeInfo?tradingStatus=[\"TRADING\"]") || {
-    fail "Error: $response"
+  response=$(http.get "${base_url}/exchangeInfo") || {
+    fail "Error: $response"?
   }
 
   jq -r '.symbols[].symbol' <<< "$response"
