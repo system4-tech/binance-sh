@@ -12,7 +12,7 @@ setup() {
     local url=$1
     case "$url" in
       *//api*)
-        echo '{"symbols":[{"symbol":"BTCUSDT"},{"symbol":"ETHUSDT"}]}'
+        echo '{"symbols":[{"symbol":"BTCUSDT","status":"TRADING"},{"symbol":"ETHUSDT","status":"TRADING"},{"symbol":"BNBUSDT","status":"BREAK"}]}'
         ;;
       *)
         echo '{"error":"unexpected"}'
@@ -33,6 +33,15 @@ setup() {
   assert_success
   assert_line "BTCUSDT"
   assert_line "ETHUSDT"
+}
+
+# Test: symbols should returns only TRADING symbols
+@test "symbols returns only TRADING symbols" {
+  run symbols spot
+  assert_success
+  assert_line "BTCUSDT"
+  assert_line "ETHUSDT"
+  refute_line "BNBUSDT"
 }
 
 # Test: symbols should fail if product argument is missing
