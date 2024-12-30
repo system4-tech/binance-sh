@@ -87,5 +87,5 @@ setup() {
 @test "klines fails when API response is not valid" {
   run klines spot BTCUSDT 1d 2021-01-02 2021-01-03
   assert_failure
-  assert_output --partial "Failed to get valid data from API"
+  assert_output --partial "Error:"
 }

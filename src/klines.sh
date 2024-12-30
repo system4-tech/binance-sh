@@ -36,9 +36,11 @@ klines() {
 
   while ((start_time_ms < end_time_ms)); do
     url="${base_url}/klines?${query}&startTime=${start_time_ms}"
+
     response=$(http.get "$url")
+    
     if ! is_array "$response"; then
-      fail "Failed to get valid data from API: $response"
+      fail "Error: $response"
     fi
 
     length=$(json_length "$response")
