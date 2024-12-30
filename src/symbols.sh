@@ -18,8 +18,8 @@ symbols() {
   
   base_url=${API_URLS[$product]:?API URL is not set}
 
-  response=$(http.get "${base_url}/exchangeInfo") || {
-    fail "Error: $response"?
+  response=$(http.get "${base_url}/exchangeInfo?tradingStatus=[\"TRADING\"]") || {
+    fail "Error: $response"
   }
 
   jq -r '.symbols[].symbol' <<< "$response"
